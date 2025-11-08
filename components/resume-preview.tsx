@@ -11,14 +11,44 @@ interface ResumePreviewProps {
  * 简历预览组件
  */
 export default function ResumePreview({ resumeData }: ResumePreviewProps) {
+  // 格式化求职意向显示
+  const formatJobIntention = () => {
+    if (!resumeData.jobIntentionSection?.enabled || !resumeData.jobIntentionSection?.items?.length) {
+      return null;
+    }
+
+    const items = resumeData.jobIntentionSection.items
+      .filter(item => {
+        // 过滤掉空值的项
+        if (item.type === 'salary') {
+          return item.salaryRange?.min !== undefined || item.salaryRange?.max !== undefined;
+        }
+        return item.value && item.value.trim() !== '';
+      })
+      .sort((a, b) => a.order - b.order)
+      .map(item => `${item.label}：${item.value}`)
+      .join(' ｜ ');
+
+    return items || null;
+  };
+
+  const jobIntentionText = formatJobIntention();
+
   return (
     <div className="resume-preview resume-content">
       {/* 头部信息 */}
-      <div className="flex items-start justify-between mb-6">
-        <div className="flex-1">
-          <h1 className="resume-title text-2xl font-bold text-foreground mb-4">
+      <div className={`flex items-start mb-6 ${resumeData.centerTitle ? 'flex-col items-center' : 'justify-between'}`}>
+        <div className={`flex-1 ${resumeData.centerTitle ? 'w-full' : ''}`}>
+          <h1 className={`resume-title text-2xl font-bold text-foreground mb-4 ${resumeData.centerTitle ? 'text-center' : ''}`}>
             {resumeData.title || "简历标题"}
           </h1>
+
+          {/* 求职意向 */}
+          {jobIntentionText && (
+            <div className={`job-intention-line text-sm text-muted-foreground mb-3 ${resumeData.centerTitle ? 'text-center' : ''}`}>
+              {jobIntentionText}
+            </div>
+          )}
 
           {/* 个人信息 */}
           {(resumeData.personalInfoSection?.layout?.mode === 'inline' ||
@@ -117,7 +147,7 @@ export default function ResumePreview({ resumeData }: ResumePreviewProps) {
 
         {/* 头像 */}
         {resumeData.avatar && (
-          <div className="ml-6">
+          <div className={resumeData.centerTitle ? 'mt-4' : 'ml-6'}>
             <img
               src={resumeData.avatar}
               alt="头像"

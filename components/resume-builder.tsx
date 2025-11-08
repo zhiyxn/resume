@@ -14,6 +14,7 @@ import type { ResumeData, EditorState } from "@/types/resume"
 import { exportToMagicyanFile, downloadFile, importFromMagicyanFile } from "@/lib/resume-utils"
 import ResumePreview from "./resume-preview"
 import PersonalInfoEditor from "./personal-info-editor"
+import JobIntentionEditor from "./job-intention-editor"
 import ModuleEditor from "./module-editor"
 import PDFExportButton from "./pdf-export-button"
 
@@ -260,9 +261,20 @@ export default function ResumeBuilder() {
               {/* 简历标题编辑 */}
               <Card className="p-4">
                 <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Icon icon="mdi:format-title" className="w-5 h-5 text-primary" />
-                    <h2 className="font-medium">简历标题</h2>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Icon icon="mdi:format-title" className="w-5 h-5 text-primary" />
+                      <h2 className="font-medium">简历标题</h2>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => updateResumeData({ centerTitle: !editorState.resumeData.centerTitle })}
+                      className="gap-2 bg-transparent"
+                    >
+                      <Icon icon={editorState.resumeData.centerTitle ? "mdi:format-align-center" : "mdi:format-align-left"} className="w-4 h-4" />
+                      {editorState.resumeData.centerTitle ? "居中显示" : "左对齐"}
+                    </Button>
                   </div>
                   <Input
                     value={editorState.resumeData.title}
@@ -272,6 +284,12 @@ export default function ResumeBuilder() {
                   />
                 </div>
               </Card>
+
+              {/* 求职意向编辑 */}
+              <JobIntentionEditor
+                jobIntentionSection={editorState.resumeData.jobIntentionSection}
+                onUpdate={(jobIntentionSection) => updateResumeData({ jobIntentionSection })}
+              />
 
               {/* 个人信息编辑 */}
               <PersonalInfoEditor

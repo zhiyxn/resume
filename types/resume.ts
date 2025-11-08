@@ -49,6 +49,37 @@ export interface PersonalInfoSection {
 }
 
 /**
+ * 求职意向项的数据结构
+ */
+export interface JobIntentionItem {
+  /** 唯一标识符 */
+  id: string
+  /** 标签名称 */
+  label: string
+  /** 值内容 */
+  value: string
+  /** 排序顺序 */
+  order: number
+  /** 类型 */
+  type: 'workYears' | 'position' | 'city' | 'salary' | 'custom'
+  /** 薪资范围（仅当type为salary时使用） */
+  salaryRange?: {
+    min?: number
+    max?: number
+  }
+}
+
+/**
+ * 求职意向模块的数据结构
+ */
+export interface JobIntentionSection {
+  /** 求职意向项列表 */
+  items: JobIntentionItem[]
+  /** 是否启用 */
+  enabled: boolean
+}
+
+/**
  * 简历模块的数据结构
  */
 export interface ResumeModule {
@@ -74,8 +105,12 @@ export interface ResumeModule {
 export interface ResumeData {
   /** 简历标题/姓名 */
   title: string
+  /** 简历标题是否居中显示 */
+  centerTitle?: boolean
   /** 个人信息模块 */
   personalInfoSection: PersonalInfoSection
+  /** 求职意向模块 */
+  jobIntentionSection?: JobIntentionSection
   /** 简历模块列表 */
   modules: ResumeModule[]
   /** 头像URL（可选） */

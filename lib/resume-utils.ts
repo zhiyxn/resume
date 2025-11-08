@@ -1,4 +1,4 @@
-import type { ResumeData, MagicyanFile, ResumeModule, PersonalInfoItem } from "@/types/resume"
+import type { ResumeData, MagicyanFile, ResumeModule, PersonalInfoItem, JobIntentionItem } from "@/types/resume"
 
 
 /**
@@ -28,6 +28,29 @@ export function createNewPersonalInfoItem(): PersonalInfoItem {
       type: "text",
     },
     icon: "mdi:information",
+    order: 0,
+  }
+}
+
+/**
+ * 创建新的求职意向项
+ */
+export function createNewJobIntentionItem(type: 'workYears' | 'position' | 'city' | 'salary' | 'custom', order: number): JobIntentionItem {
+  const labels = {
+    workYears: '工作经验',
+    position: '求职意向',
+    city: '目标城市',
+    salary: '期望薪资',
+    custom: '自定义'
+  }
+
+  return {
+    id: `jii-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    label: labels[type],
+    value: '',
+    order,
+    type,
+    salaryRange: type === 'salary' ? { min: undefined, max: undefined } : undefined
   }
 }
 
@@ -99,7 +122,7 @@ export function importFromMagicyanFile(fileContent: string): ResumeData {
     }
 
     const now = new Date().toISOString()
-    
+
     // 处理布局配置：优先使用新的layout属性，如果不存在则从旧的personalInfoInline转换
     let layout = data.personalInfoSection?.layout
     if (!layout) {
@@ -110,7 +133,7 @@ export function importFromMagicyanFile(fileContent: string): ResumeData {
         itemsPerRow: personalInfoInline ? undefined : 2
       }
     }
-    
+
     return {
       ...data,
       personalInfoSection: {
@@ -189,11 +212,6 @@ export function validateResumeData(data: ResumeData): { isValid: boolean; errors
   // 验证showPersonalInfoLabels属性
   if (data.personalInfoSection?.showPersonalInfoLabels !== undefined && typeof data.personalInfoSection.showPersonalInfoLabels !== "boolean") {
     errors.push("显示个人信息标签设置格式错误")
-  }
-
-  // 验证personalInfoInline属性
-  if (data.personalInfoSection?.personalInfoInline !== undefined && typeof data.personalInfoSection.personalInfoInline !== "boolean") {
-    errors.push("个人信息内联设置格式错误")
   }
 
   return {

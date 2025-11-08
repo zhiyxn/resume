@@ -2,6 +2,7 @@
   "version": "1.0.0",
   "data": {
     "title": "严钦蓝",
+    "centerTitle": true,
     "personalInfoSection": {
       "personalInfo": [
         {
@@ -72,6 +73,32 @@
         "itemsPerRow": 6
       }
     },
+    "jobIntentionSection": {
+      "items": [
+        {
+          "id": "jii-1",
+          "label": "工作经验",
+          "value": "16年",
+          "order": 0,
+          "type": "workYears"
+        },
+        {
+          "id": "jii-2",
+          "label": "求职意向",
+          "value": "Java",
+          "order": 1,
+          "type": "position"
+        },
+        {
+          "id": "jii-3",
+          "label": "目标城市",
+          "value": "北京",
+          "order": 2,
+          "type": "city"
+        }
+      ],
+      "enabled": true
+    },
     "modules": [
       {
         "id": "education-1",
@@ -128,10 +155,10 @@
       }
     ],
     "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2025-11-08T00:18:28.550Z"
+    "updatedAt": "2025-11-08T03:25:02.623Z"
   },
   "metadata": {
-    "exportedAt": "2025-11-08T00:18:28.550Z",
+    "exportedAt": "2025-11-08T03:25:02.623Z",
     "appVersion": "1.0.0"
   }
 }
