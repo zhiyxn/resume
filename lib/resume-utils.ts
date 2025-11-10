@@ -415,6 +415,22 @@ export function generatePdfFilename(resumeTitle: string): string {
   return `${cleanTitle}_${timestamp}.pdf`
 }
 
+/**
+ * 为路由路径生成 PDF 文件名：/api/pdf/${filename}
+ * 规则："简历-" + 对标题中的“ASCII 特殊字符”做 URL 编码（空格 -> %20，/ -> %2F 等），
+ * 非 ASCII 字符（如中文）不编码。
+ */
+export function generatePdfPathFilename(resumeTitle: string): string {
+  const base = (resumeTitle || '').trim() || '未命名';
+  const encoded = base.replace(/[\x00-\x7F]/g, (ch) => {
+    // 保留 RFC3986 中的 unreserved: ALPHA / DIGIT / "-" / "." / "_" / "~"
+    if (/[A-Za-z0-9\-_.~]/.test(ch)) return ch;
+    // 其它 ASCII 字符进行编码（包含空格、斜杠等）
+    return encodeURIComponent(ch);
+  });
+  return `简历-${encoded}.pdf`;
+}
+
 
 
 

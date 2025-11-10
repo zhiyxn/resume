@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ResumeData } from "@/types/resume";
+import { generatePdfPathFilename } from "@/lib/resume-utils";
 import ResumePreview from "./resume-preview";
 
 
@@ -31,7 +32,8 @@ async function checkServerPdfAvailable(): Promise<boolean> {
 }
 
 async function generateServerPdf(resumeData: ResumeData): Promise<Blob> {
-  const res = await fetch("/api/pdf", {
+  const filename = generatePdfPathFilename(resumeData.title || "");
+  const res = await fetch(`/api/pdf/${filename}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ resumeData }),
@@ -59,6 +61,7 @@ export function PDFViewer({
   resumeData,
   onModeChange,
   renderNotice = "internal",
+  serverFilename,
 }: {
   resumeData: ResumeData;
   onModeChange?: (mode: Mode) => void;
@@ -67,6 +70,12 @@ export function PDFViewer({
    * external: 由外部容器负责渲染提示（组件内部不再渲染提示）
    */
   renderNotice?: "internal" | "external";
+  /**
+   * （可选）覆盖服务器生成 PDF 时使用的文件名路径片段。
+   * 当外部容器本身位于 /pdf/preview/[filename] 这样的语义路由时，
+   * 传入同名可保证服务端与 URL 文件名一致。
+   */
+  serverFilename?: string;
 }) {
   const [mode, setMode] = useState<Mode>("loading");
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
@@ -74,6 +83,7 @@ export function PDFViewer({
   const hasServerPdfRef = useRef(false);
   const resumeKey = useMemo(() => JSON.stringify(resumeData), [resumeData]);
   const genIdRef = useRef(0);
+  const navigatedRef = useRef(false);
 
   useEffect(() => {
     let mounted = true;
@@ -100,6 +110,33 @@ export function PDFViewer({
       if (!available) {
         if (mounted) setMode("fallback");
         onModeChange?.("fallback");
+        return;
+      }
+
+      // 在外部容器模式下，直接通过表单 POST 跳转到 /api/pdf
+      if (renderNotice === "external") {
+        if (!mounted) return;
+        setMode("server");
+        onModeChange?.("server");
+        // 延迟一个宏任务，保证 spinner 先渲染
+        setTimeout(() => {
+      try {
+        const form = document.createElement("form");
+        form.method = "POST";
+        const targetName = serverFilename || generatePdfPathFilename(resumeData.title || "");
+        form.action = `/api/pdf/${targetName}`;
+        form.style.display = "none";
+        const textarea = document.createElement("textarea");
+        textarea.name = "resumeData";
+        textarea.value = JSON.stringify(resumeData);
+        form.appendChild(textarea);
+            document.body.appendChild(form);
+            form.submit();
+            // 提交后页面将导航至浏览器内置 PDF 查看器
+          } catch (e) {
+            console.error(e);
+          }
+        }, 0);
         return;
       }
 
@@ -133,6 +170,18 @@ export function PDFViewer({
   }, [resumeKey]);
 
   if (mode === "server") {
+    if (renderNotice === "external") {
+      // 已触发导航到浏览器内置 PDF 查看器，这里展示一个轻量过渡状态（极短时间可见）
+      return (
+        <div className="w-full h-full flex flex-col items-center justify-center gap-3">
+          <svg className="animate-spin h-8 w-8 text-muted-foreground" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+          </svg>
+          <div className="text-sm text-muted-foreground">正在打开浏览器 PDF 查看器…</div>
+        </div>
+      );
+    }
     return (
       <object data={pdfUrl || undefined} type="application/pdf" width="100%" height="100%" style={{ border: "none" }}>
         <div className="p-6 text-center text-muted-foreground">
@@ -144,8 +193,12 @@ export function PDFViewer({
 
   if (mode === "loading") {
     return (
-      <div className="w-full h-full flex items-center justify-center">
-        <div className="text-sm text-muted-foreground">正在生成 PDF 预览…</div>
+      <div className="w-full h-full flex flex-col items-center justify-center gap-3">
+        <svg className="animate-spin h-8 w-8 text-muted-foreground" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+        </svg>
+        <div className="text-sm text-muted-foreground">正在生成 PDF，请稍候…</div>
       </div>
     );
   }

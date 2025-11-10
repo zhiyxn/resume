@@ -2,13 +2,26 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
+// 简单内存缓存，保存最近一次生成的 PDF，便于浏览器查看器下载时复用
+const PDF_CACHE: Map<string, { data: Uint8Array; expires: number }> = new Map();
+
+function setPdfTokenCookie(token: string) {
+  // 5 分钟有效
+  const maxAge = 300;
+  return `pdfToken=${token}; Path=/api/pdf; Max-Age=${maxAge}; SameSite=Lax`;
+}
+
+function getPdfTokenFromRequest(req: Request): string | null {
+  const cookie = req.headers.get("cookie") || "";
+  const m = cookie.match(/(?:^|;\s*)pdfToken=([^;]+)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
 function getOrigin(req: Request) {
-  // Prefer the actual request URL's origin (works in dev and prod)
   try {
     const u = new URL(req.url);
     if (u.origin) return u.origin;
   } catch {}
-  // Fallback to headers
   const proto = (req.headers.get("x-forwarded-proto") || req.headers.get("scheme") || "http").split(",")[0].trim();
   const host = (req.headers.get("x-forwarded-host") || req.headers.get("host") || "").split(",")[0].trim();
   if (!host) return "";
@@ -18,7 +31,7 @@ function getOrigin(req: Request) {
 async function toDataUrlIfRemote(url?: string): Promise<string | undefined> {
   if (!url) return undefined;
   if (/^data:/i.test(url)) return url;
-  if (/^blob:/i.test(url)) return undefined; // cannot dereference blob: across contexts
+  if (/^blob:/i.test(url)) return undefined;
   if (!/^https?:\/\//i.test(url)) return url;
   try {
     const res = await fetch(url);
@@ -31,13 +44,14 @@ async function toDataUrlIfRemote(url?: string): Promise<string | undefined> {
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: Request, ctx: { params: { filename: string } }) {
   try {
     const [{ default: chromium }, { default: puppeteer }] = await Promise.all([
       import("@sparticuz/chromium"),
       import("puppeteer-core"),
     ]);
-    // 兼容多种提交方式：application/json、text/plain(JSON字符串)、form-urlencoded/form-data（字段名：resumeData）
+
+    // Body parsing: JSON, form, or raw text(JSON)
     let resumeData: any = null;
     const ct = (req.headers.get("content-type") || "").toLowerCase();
     if (ct.includes("application/json")) {
@@ -60,6 +74,7 @@ export async function POST(req: Request) {
         try { resumeData = JSON.parse(text); } catch {}
       }
     }
+
     if (!resumeData) {
       return new Response(JSON.stringify({ error: "Missing resumeData" }), {
         status: 400,
@@ -86,12 +101,7 @@ export async function POST(req: Request) {
     }
     const usingSystemChrome = !!envPath;
     const launchArgs = usingSystemChrome
-      ? [
-          "--headless=new",
-          "--disable-gpu",
-          "--no-sandbox",
-          "--disable-dev-shm-usage",
-        ]
+      ? ["--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage"]
       : chromium.args;
     const headless: any = usingSystemChrome ? "new" : chromium.headless;
     const browser = await puppeteer.launch({
@@ -101,8 +111,8 @@ export async function POST(req: Request) {
       headless,
     });
     const page = await browser.newPage();
-    // 在任何脚本运行之前，将简历数据写入 sessionStorage，避免超长 URL 及 431 错误
-    // 同时将远端头像资源内联为 data URL，避免因网络或拦截导致图片缺失
+
+    // Prepare data: inline avatar if remote
     const preparedData = { ...resumeData } as any;
     if (preparedData.avatar) {
       preparedData.avatar = await toDataUrlIfRemote(preparedData.avatar);
@@ -114,20 +124,8 @@ export async function POST(req: Request) {
     }, preparedData);
     await page.emulateMediaType("print");
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
-    // 等待关键容器渲染：优先等待 .resume-content；若未出现则退而求其次等待 .pdf-preview-mode
-    try {
-      await page.waitForSelector(".resume-content, .pdf-preview-mode", { timeout: 20000 });
-    } catch {
-      // 继续尝试：给客户端再一点时间完成渲染，避免直接失败
-      await new Promise((r) => setTimeout(r, 500));
-    }
-    try {
-      // @ts-ignore puppeteer v23+
-      await page.waitForNetworkIdle({ idleTime: 300, timeout: 10000 });
-    } catch {
-      await new Promise((r) => setTimeout(r, 300));
-    }
-    // 等富文本内容（Tiptap）完成渲染：等待 ProseMirror 或段落/列表出现
+    try { await page.waitForSelector(".resume-content, .pdf-preview-mode", { timeout: 20000 }); } catch { await new Promise(r => setTimeout(r, 500)); }
+    try { /* @ts-ignore puppeteer v23+ */ await page.waitForNetworkIdle({ idleTime: 300, timeout: 10000 }); } catch { await new Promise(r => setTimeout(r, 300)); }
     try {
       await page.waitForFunction(() => {
         const root = document.querySelector('.resume-content');
@@ -135,17 +133,13 @@ export async function POST(req: Request) {
         return !!root.querySelector('.ProseMirror, .resume-module p, .resume-module li, .resume-module a, .resume-module span');
       }, { timeout: 30000 });
     } catch {}
-    // 字体就绪
-    try {
-      await page.evaluate(() => (document as any).fonts && (document as any).fonts.ready);
-    } catch {}
+    try { await page.evaluate(() => (document as any).fonts && (document as any).fonts.ready); } catch {}
 
     async function doPrint() {
       return await page.pdf({
         format: "A4",
         printBackground: true,
         displayHeaderFooter: false,
-        // 让 @page 的 margin 生效，避免双重边距引发空白页
         preferCSSPageSize: true,
       });
     }
@@ -155,7 +149,6 @@ export async function POST(req: Request) {
     } catch (e: any) {
       const msg = String(e?.message || e || "");
       if (/Target closed|Execution context was destroyed/i.test(msg)) {
-        // retry once after a short delay
         await new Promise((r) => setTimeout(r, 300));
         pdf = await doPrint();
       } else {
@@ -164,19 +157,66 @@ export async function POST(req: Request) {
     }
     await browser.close();
 
-    // 生成文件名（UTF-8），并提供 ASCII 回退值以提升兼容性
-    const { generatePdfFilename } = await import("@/lib/resume-utils");
-    const rawName = generatePdfFilename(String(resumeData?.title || "简历"));
+    // Content-Disposition with filename from URL param
+    const inputName = ctx?.params?.filename || "resume.pdf";
+    // 解码并确保不会包含换行或路径分隔符
+    const rawNameUnsafe = decodeURIComponent(inputName);
+    const rawName = rawNameUnsafe.replace(/[\r\n]/g, "_").replace(/\//g, "_");
     const asciiFallback = rawName.replace(/[^\x20-\x7E]/g, "_");
     const utf8Star = `UTF-8''${encodeURIComponent(rawName)}`;
 
-    return new Response(pdf, {
+    // 生成并缓存 token，供浏览器下载按钮重复请求（GET）时使用
+    const token = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    PDF_CACHE.set(token, { data: Buffer.from(pdf), expires: Date.now() + 5 * 60 * 1000 });
+
+    // 关键修复：不要直接返回 PDF 正文。
+    // 某些浏览器的内置 PDF 查看器在点击“下载”时，会由扩展上下文发起一个新的 GET 请求，
+    // 该请求不会携带 Lax Cookie，导致我们基于 Cookie 的缓存命中失败，出现“下载失败/网络错误”。
+    // 这里改为 303 重定向到携带 token 的 GET URL，使后续的查看与下载都使用同一个带 token 的地址，
+    // 无需依赖 Cookie，从而避免下载失败。
+    const loc = new URL(req.url);
+    const redirectUrl = `${loc.origin}/api/pdf/${encodeURIComponent(inputName)}?token=${encodeURIComponent(token)}`;
+    return new Response(null, {
+      status: 303,
       headers: {
-        "content-type": "application/pdf",
-        // 同时提供 filename 与 filename* 以兼容旧浏览器与非 ASCII 场景
-        "content-disposition": `inline; filename="${asciiFallback}"; filename*=${utf8Star}`,
-        "cache-control": "no-store",
+        Location: redirectUrl,
+        // 仍设置一次 Cookie 作为兜底（同站情况下也可命中）
+        "set-cookie": setPdfTokenCookie(token),
       },
+    });
+  } catch (error: any) {
+    return new Response(JSON.stringify({ error: String(error?.message || error) }), {
+      status: 500,
+      headers: { "content-type": "application/json" },
+    });
+  }
+}
+
+export async function GET(req: Request, ctx: { params: { filename: string } }) {
+  try {
+    // 允许通过 URL 查询参数或 Cookie 携带 token
+    const url = new URL(req.url);
+    const tokenFromQuery = url.searchParams.get("token");
+    const token = tokenFromQuery || getPdfTokenFromRequest(req);
+    const cached = token ? PDF_CACHE.get(token) : undefined;
+    if (cached && cached.expires > Date.now()) {
+      const inputName = ctx?.params?.filename || "resume.pdf";
+      const rawNameUnsafe = decodeURIComponent(inputName);
+      const rawName = rawNameUnsafe.replace(/[\r\n]/g, "_").replace(/\//g, "_");
+      const asciiFallback = rawName.replace(/[^\x20-\x7E]/g, "_");
+      const utf8Star = `UTF-8''${encodeURIComponent(rawName)}`;
+      return new Response(cached.data, {
+        headers: {
+          "content-type": "application/pdf",
+          "content-disposition": `inline; filename=\"${asciiFallback}\"; filename*=${utf8Star}`,
+          "cache-control": "no-store",
+        },
+      });
+    }
+    // 若缓存失效或缺失，返回 404，提示用户重新生成
+    return new Response(JSON.stringify({ error: "PDF cache expired. Please regenerate." }), {
+      status: 404,
+      headers: { "content-type": "application/json" },
     });
   } catch (error: any) {
     return new Response(JSON.stringify({ error: String(error?.message || error) }), {

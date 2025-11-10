@@ -1,5 +1,18 @@
 /* 打印专用样式 */
 @media print {
+  /* 预览页面根容器：清除固定高度与溢出裁剪，允许内容跨页 */
+  .pdf-preview-page-root {
+    height: auto !important;
+    overflow: visible !important;
+  }
+  .pdf-preview-page-root .overflow-hidden,
+  .pdf-preview-page-root .h-screen,
+  .pdf-preview-page-root .min-h-screen,
+  .pdf-preview-page-root .flex-1,
+  .pdf-preview-page-root [style*="overflow: hidden"] {
+    height: auto !important;
+    overflow: visible !important;
+  }
   /* 页面设置 */
   @page {
     size: A4;
