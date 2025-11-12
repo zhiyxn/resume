@@ -286,50 +286,7 @@
     @apply w-3xl mx-auto bg-white shadow-lg p-8;
   }
 
-  .resume-preview.resume-content {
-    line-height: 1.55;
-    font-size: 11pt;
-  }
-
-  .resume-preview.resume-content .ProseMirror>p {
-    margin: 0 0 0.6em 0 !important;
-    line-height: 1.6 !important;
-  }
-
-  /* 预览：单元格（grid 的每个列）内让 ProseMirror 内容垂直居中 */
-  .resume-preview.resume-content .resume-module .grid>div .ProseMirror {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
-
-  /* 预览：格内最后一个块不再留下段后，避免下间距更大导致看起来偏上 */
-  .resume-preview.resume-content .resume-module .grid>div .ProseMirror>p:last-child {
-    margin-bottom: 0 !important;
-  }
-
-  .resume-preview.resume-content .resume-module .grid>div .ProseMirror>ul:last-child,
-  .resume-preview.resume-content .resume-module .grid>div .ProseMirror>ol:last-child {
-    margin-bottom: 0 !important;
-  }
-
-  /* 预览：顶层列表块的段后间距 */
-  .resume-preview.resume-content .ProseMirror>ul,
-  .resume-preview.resume-content .ProseMirror>ol {
-    margin: 0 0 0.6em 0 !important;
-  }
-
-  /* 预览：当段落紧跟在列表之后时，补充对称的段前距离 */
-  .resume-preview.resume-content .ProseMirror>ol+p,
-  .resume-preview.resume-content .ProseMirror>ul+p {
-    margin-top: 0.6em !important;
-  }
-
-  /* 预览：列表项（非最后一个）内部间距 */
-  .resume-preview.resume-content li:not(:last-child) {
-    margin-bottom: 0.6em !important;
-    line-height: 1.6 !important;
-  }
+  /* 预览样式移至 styles/print.css，避免重复定义 */
 
   .pdf-preview-container {
     @apply w-full h-[70vh] overflow-hidden;
@@ -373,30 +330,46 @@
     font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
   }
 
-  .pdf-preview-mode .resume-content {
-    font-size: 11pt;
-    line-height: 1.55;
-  }
-
-  .pdf-preview-mode .resume-content .ProseMirror>p {
+  /* ---- Preview spacing (restored for production stability) ---- */
+  /* Ensure top-level paragraphs inside preview have consistent spacing */
+  .resume-preview.resume-content .ProseMirror>p {
     margin: 0 0 0.6em 0 !important;
     line-height: 1.6 !important;
   }
 
-  .pdf-preview-mode .resume-content .ProseMirror>ul,
-  .pdf-preview-mode .resume-content .ProseMirror>ol {
+  /* Top-level lists get the same block spacing */
+  .resume-preview.resume-content .ProseMirror>ul,
+  .resume-preview.resume-content .ProseMirror>ol {
     margin: 0 0 0.6em 0 !important;
   }
 
-  .pdf-preview-mode .resume-content .ProseMirror>ol+p,
-  .pdf-preview-mode .resume-content .ProseMirror>ul+p {
+  /* When a paragraph follows a list, add symmetric leading */
+  .resume-preview.resume-content .ProseMirror>ol+p,
+  .resume-preview.resume-content .ProseMirror>ul+p {
     margin-top: 0.6em !important;
   }
 
-  .pdf-preview-mode .resume-content .ProseMirror li:not(:last-child) {
+  /* List item internal spacing */
+  .resume-preview.resume-content li:not(:last-child) {
     margin-bottom: 0.6em !important;
     line-height: 1.6 !important;
   }
+
+  /* Center single-line content inside grid cells (min-height:40px from tiptap) */
+  .resume-preview.resume-content .resume-module .grid>div .ProseMirror {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  /* In grid cells, remove trailing block margin so centering is visually balanced */
+  .resume-preview.resume-content .resume-module .grid>div .ProseMirror>p:last-child,
+  .resume-preview.resume-content .resume-module .grid>div .ProseMirror>ul:last-child,
+  .resume-preview.resume-content .resume-module .grid>div .ProseMirror>ol:last-child {
+    margin-bottom: 0 !important;
+  }
+
+  /* PDF 预览样式移至 styles/print.css，避免重复定义 */
 
   .space-y-\[0\.3em\]> :where(:not([hidden]) ~ :not([hidden])) {
     margin-block-start: 0.3em !important;
