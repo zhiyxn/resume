@@ -33,9 +33,10 @@ async function toDataUrlIfRemote(url?: string): Promise<string | undefined> {
 
 export async function POST(req: Request) {
   try {
-    const [{ default: chromium }, { default: puppeteer }] = await Promise.all([
+    const [{ default: chromium }, { default: puppeteer }, { closeBrowserSafely }] = await Promise.all([
       import("@sparticuz/chromium"),
       import("puppeteer-core"),
+      import("@/lib/browser-utils"),
     ]);
     // 兼容多种提交方式：application/json、text/plain(JSON字符串)、form-urlencoded/form-data（字段名：resumeData）
     let resumeData: import("@/types/resume").ResumeData | null = null;
@@ -185,7 +186,8 @@ export async function POST(req: Request) {
         throw e;
       }
     }
-    await browser.close();
+    // Use disconnect() + kill instead of close() to avoid hanging in WSL2/Linux
+    await closeBrowserSafely(browser, { timeout: 2000 });
 
     // Generate filename and provide ASCII fallback
     const { generatePdfFilename } = await import("@/lib/utils");

@@ -54,9 +54,10 @@ export async function POST(
   ctx: { params: Promise<{ filename: string }> | { filename: string } }
 ) {
   try {
-    const [{ default: chromium }, { default: puppeteer }] = await Promise.all([
+    const [{ default: chromium }, { default: puppeteer }, { closeBrowserSafely }] = await Promise.all([
       import("@sparticuz/chromium"),
       import("puppeteer-core"),
+      import("@/lib/browser-utils"),
     ]);
 
     // Body parsing: JSON, form, or raw text(JSON)
@@ -195,7 +196,8 @@ export async function POST(
         throw e;
       }
     }
-    await browser.close();
+    // Use disconnect() + kill instead of close() to avoid hanging in WSL2/Linux
+    await closeBrowserSafely(browser, { timeout: 2000 });
 
     // Content-Disposition with filename from URL param (await params for Next.js dynamic APIs)
     const awaitedParams = await Promise.resolve(

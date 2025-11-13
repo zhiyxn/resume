@@ -4,8 +4,11 @@ export const maxDuration = 15;
 
 export async function GET() {
   try {
-    const { default: chromium } = await import("@sparticuz/chromium");
-    const { default: puppeteer } = await import("puppeteer-core");
+    const [{ default: chromium }, { default: puppeteer }, { closeBrowserSafely }] = await Promise.all([
+      import("@sparticuz/chromium"),
+      import("puppeteer-core"),
+      import("@/lib/browser-utils"),
+    ]);
     const envPath = process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_PATH || "";
     const resolvedPath = envPath || (await chromium.executablePath());
     if (!resolvedPath) {
@@ -32,7 +35,8 @@ export async function GET() {
       executablePath: resolvedPath,
       headless,
     });
-    await browser.close();
+    // 使用智能关闭：优先尝试优雅关闭，超时则强制关闭
+    await closeBrowserSafely(browser, { timeout: 2000 });
     return new Response(JSON.stringify({ ok: true }), {
       headers: { "content-type": "application/json" },
     });

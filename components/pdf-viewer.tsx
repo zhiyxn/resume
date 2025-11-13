@@ -56,7 +56,7 @@ async function generateServerPdf(resumeData: ResumeData): Promise<Blob> {
   return await res.blob();
 }
 
-export type Mode = "loading" | "server" | "fallback";
+export type Mode = "loading" | "server" | "fallback" | "success";
 
 export function PDFViewer({
   resumeData,
@@ -136,29 +136,80 @@ export function PDFViewer({
         return;
       }
 
-      // 在外部容器模式下，直接通过表单 POST 跳转到 /api/pdf
+      // 在外部容器模式下，使用 fetch 生成 PDF 并下载，然后关闭窗口
       if (renderNotice === "external") {
         if (!mounted) return;
         setMode("server");
         onModeChange?.("server");
         // 延迟一个宏任务，保证 spinner 先渲染
-        setTimeout(() => {
+        setTimeout(async () => {
           try {
-            const form = document.createElement("form");
-            form.method = "POST";
             const parsed: ResumeData = JSON.parse(resumeKey);
             const targetName = serverFilename || generatePdfFilename(parsed.title || "");
-            form.action = `/api/pdf/${targetName}`;
-            form.style.display = "none";
-            const textarea = document.createElement("textarea");
-            textarea.name = "resumeData";
-            textarea.value = JSON.stringify(parsed);
-            form.appendChild(textarea);
-            document.body.appendChild(form);
-            form.submit();
-            // 提交后页面将导航至浏览器内置 PDF 查看器
+
+            // 使用 fetch 请求 PDF
+            const res = await fetch(`/api/pdf/${targetName}`, {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ resumeData: parsed }),
+            });
+
+            if (!res.ok) {
+              throw new Error(`PDF 生成失败 (${res.status})`);
+            }
+
+            // 检查响应类型
+            const contentType = res.headers.get("content-type") || "";
+
+            // 如果是重定向响应（返回 JSON 带 Location）或已经是 PDF
+            if (contentType.includes("application/pdf")) {
+              // 直接下载 PDF blob
+              const blob = await res.blob();
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = targetName;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+
+              // 下载完成后，短暂延迟后关闭窗口
+              setTimeout(() => {
+                try {
+                  window.close();
+                  // 如果 close 没有抛出异常但窗口仍然打开（某些浏览器的行为），
+                  // 检查窗口是否真的关闭了
+                  setTimeout(() => {
+                    if (!window.closed) {
+                      // 窗口未关闭，显示成功提示
+                      if (mounted) {
+                        setMode("success");
+                        onModeChange?.("success");
+                      }
+                    }
+                  }, 100);
+                } catch (e) {
+                  // 如果无法关闭窗口（浏览器安全限制），显示成功提示
+                  if (mounted) {
+                    setMode("success");
+                    onModeChange?.("success");
+                  }
+                }
+              }, 500);
+            } else if (res.redirected || res.url.includes("?token=")) {
+              // 303 重定向的情况，打开新页面预览 PDF
+              window.location.href = res.url;
+            } else {
+              throw new Error("意外的响应类型");
+            }
           } catch (e) {
-            console.error(e);
+            console.error("PDF 生成失败:", e);
+            // 发生错误时，回退到浏览器打印
+            if (mounted) {
+              setMode("fallback");
+              onModeChange?.("fallback");
+            }
           }
         }, 0);
         return;
@@ -194,10 +245,44 @@ export function PDFViewer({
     };
   }, [resumeKey, onModeChange, renderNotice, serverFilename]);
 
+  if (mode === "success") {
+    // PDF 下载成功，显示提示
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center gap-4 bg-background">
+        <div className="rounded-full bg-green-100 p-3 dark:bg-green-900">
+          <svg className="h-8 w-8 text-green-600 dark:text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <div className="text-center space-y-3">
+          <div className="text-lg font-medium">PDF 下载成功！</div>
+          <div className="text-sm text-muted-foreground">请检查浏览器的下载文件夹</div>
+          <button
+            onClick={() => window.close()}
+            className="mt-4 inline-flex items-center px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 text-sm font-medium"
+          >
+            关闭此窗口
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (mode === "server") {
     if (renderNotice === "external") {
-      // 已触发导航到浏览器内置 PDF 查看器，这里展示一个轻量过渡状态（极短时间可见）
-      return <PdfLoading message="正在打开浏览器 PDF 查看器…" />;
+      // 显示下载进度状态
+      return (
+        <div className="w-full h-full flex flex-col items-center justify-center gap-4 bg-background">
+          <svg className="animate-spin h-10 w-10 text-primary" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+          </svg>
+          <div className="text-center space-y-2">
+            <div className="text-lg font-medium">正在生成 PDF...</div>
+            <div className="text-sm text-muted-foreground">生成完成后将自动下载并关闭此窗口</div>
+          </div>
+        </div>
+      );
     }
     return (
       <object data={pdfUrl || undefined} type="application/pdf" width="100%" height="100%" style={{ border: "none" }}>
