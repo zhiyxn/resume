@@ -224,6 +224,9 @@ SITE_PASSWORD=你的访问密码
 - [ ] 模拟面试
 - [ ] 利用 AI Agent 从网络自动抓取并汇总相似岗位的面经并展示
 
+### 个性化简历样式
+- [ ] 提供更多简历模板以供选择，可参考 [novoresume](https://novoresume.com/cv-templates)
+
 ### 支持加密远程存储
 - [ ] 集成 WebDAV、Google Cloud、OneDrive 等用于数据存储与同步
 - [ ] 用户自定义加密密码
