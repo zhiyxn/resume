@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import dynamic from "next/dynamic"
+import PdfLoading from "@/components/pdf-loading"
 import type { ResumeData } from "@/types/resume"
 import { Button } from "@/components/ui/button"
 import { Icon } from "@iconify/react"
@@ -9,7 +10,7 @@ import { Icon } from "@iconify/react"
 // 动态导入 PDF 组件，禁用 SSR
 const DynamicPDFViewer = dynamic(
   () => import("@/components/pdf-viewer").then((mod) => mod.PDFViewer),
-  { ssr: false }
+  { ssr: false, loading: () => <PdfLoading /> }
 )
 
 function PDFPreviewContent() {
@@ -71,8 +72,8 @@ function PDFPreviewContent() {
     return () => window.removeEventListener('keydown', onKey);
   }, [fallback]);
 
-  // 无显式加载页：在拿到数据前不渲染内容，避免出现中间态
-  if (!resumeData) return null
+  // 在拿到数据前直接显示“正在生成 PDF…”的等待视图，避免空白页
+  if (!resumeData) return <PdfLoading fullScreen />
 
   return (
     <div className="pdf-preview-page-root flex flex-col h-screen overflow-hidden print:h-auto print:overflow-visible">

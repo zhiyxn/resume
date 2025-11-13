@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { ResumeData } from "@/types/resume";
 import { generatePdfFilename } from "@/lib/utils";
 import ResumePreview from "./resume-preview";
+import PdfLoading from "@/components/pdf-loading";
 
 
 const FORCE_PRINT = process.env.NEXT_PUBLIC_FORCE_PRINT === "true";
@@ -196,15 +197,7 @@ export function PDFViewer({
   if (mode === "server") {
     if (renderNotice === "external") {
       // 已触发导航到浏览器内置 PDF 查看器，这里展示一个轻量过渡状态（极短时间可见）
-      return (
-        <div className="w-full h-full flex flex-col items-center justify-center gap-3">
-          <svg className="animate-spin h-8 w-8 text-muted-foreground" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-          </svg>
-          <div className="text-sm text-muted-foreground">正在打开浏览器 PDF 查看器…</div>
-        </div>
-      );
+      return <PdfLoading message="正在打开浏览器 PDF 查看器…" />;
     }
     return (
       <object data={pdfUrl || undefined} type="application/pdf" width="100%" height="100%" style={{ border: "none" }}>
@@ -216,15 +209,7 @@ export function PDFViewer({
   }
 
   if (mode === "loading") {
-    return (
-      <div className="w-full h-full flex flex-col items-center justify-center gap-3">
-        <svg className="animate-spin h-8 w-8 text-muted-foreground" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-        </svg>
-        <div className="text-sm text-muted-foreground">正在生成 PDF，请稍候…</div>
-      </div>
-    );
+    return <PdfLoading />;
   }
 
   // 回退到所见即所得的 HTML 预览 + 打印指引
