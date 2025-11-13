@@ -15,6 +15,12 @@
 - **富文本支持**: 支持自由设置文本格式，如字体、文字大小、颜色、对齐方式以及是否加粗、URL 链接等
 - **自适应**: 支持不同模块/布局自由组合，自动调整元素尺寸
 
+<p align="left">
+  <a href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fwzdnzd%2Fresume&env=SITE_PASSWORD&project-name=resume&repository-name=resume" target="_blank" rel="noopener noreferrer"><img src="https://vercel.com/button" alt="Vercel" height="30"></a>
+  &nbsp;
+  <a href="https://edgeone.ai/pages/new?repository-url=https%3A%2F%2Fgithub.com%2Fwzdnzd%2Fresume&env=SITE_PASSWORD&project-name=resume&repository-name=resume" target="_blank" rel="noopener noreferrer"><img src="https://cdnstatic.tencentcs.com/edgeone/pages/deploy.svg" alt="EdgeOne Pages" height="30"></a>
+</p>
+
 ## 页面示例截图
 1. 用户中心：本地化集中管理多份简历
 ![用户中心](./docs/user-center.png)
