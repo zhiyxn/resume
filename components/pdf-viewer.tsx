@@ -168,7 +168,8 @@ export function PDFViewer({
               const url = URL.createObjectURL(blob);
               const a = document.createElement("a");
               a.href = url;
-              a.download = targetName;
+              // 解码文件名，避免下载时显示 URL 编码
+              a.download = decodeURIComponent(targetName);
               document.body.appendChild(a);
               a.click();
               document.body.removeChild(a);
@@ -189,7 +190,7 @@ export function PDFViewer({
                       }
                     }
                   }, 100);
-                } catch (e) {
+                } catch {
                   // 如果无法关闭窗口（浏览器安全限制），显示成功提示
                   if (mounted) {
                     setMode("success");
@@ -359,7 +360,8 @@ export function PDFDownloadLink({
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = fileName;
+      // 解码文件名，避免下载时显示 URL 编码
+      a.download = decodeURIComponent(fileName);
       document.body.appendChild(a);
       a.click();
       a.remove();
