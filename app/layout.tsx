@@ -1,6 +1,8 @@
 import type React from "react";
 import type { Metadata } from "next";
 import { GeistMono } from "geist/font/mono";
+import "../styles/print.css";
+import "../styles/tiptap.css";
 import "./globals.css";
 import { Toaster } from "@/components/toaster";
 import { ColorPickerProvider } from "@/components/color-picker-manager";

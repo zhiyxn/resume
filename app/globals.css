@@ -1,8 +1,5 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-/* Ensure auxiliary styles are bundled in prod (must appear before any non-@import rules) */
-@import url("../styles/print.css");
-@import url("../styles/tiptap.css");
 
 @custom-variant dark (&:is(.dark *));
 
