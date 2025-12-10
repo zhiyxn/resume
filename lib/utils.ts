@@ -40,6 +40,7 @@ export function createDefaultResumeData(): ResumeData {
         }
       ],
       showPersonalInfoLabels: false,
+      avatarShape: 'circle',
       layout: {
         mode: 'grid',
         itemsPerRow: 2
@@ -384,11 +385,14 @@ export function importFromMagicyanFile(fileContent: string): ResumeData {
     }
   }
 
+  const avatarShape = data.personalInfoSection?.avatarShape === "square" ? "square" : "circle"
+
   return {
     ...data,
     personalInfoSection: {
       personalInfo: data.personalInfoSection?.personalInfo || [],
       showPersonalInfoLabels: data.personalInfoSection?.showPersonalInfoLabels !== undefined ? data.personalInfoSection.showPersonalInfoLabels : true,
+      avatarShape,
       layout: layout,
     },
     createdAt: data.createdAt || now,

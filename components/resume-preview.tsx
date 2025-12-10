@@ -78,6 +78,9 @@ export default function ResumePreview({ resumeData }: ResumePreviewProps) {
   };
 
   const jobIntentionText = formatJobIntention();
+  const avatarShape = resumeData.personalInfoSection?.avatarShape === "square" ? "square" : "circle";
+  const avatarShapeClasses =
+    avatarShape === "square" ? "rounded-none avatar-square" : "rounded-full";
 
   return (
     <div className="resume-preview resume-content">
@@ -89,7 +92,7 @@ export default function ResumePreview({ resumeData }: ResumePreviewProps) {
             <img
               src={resumeData.avatar}
               alt="头像"
-              className="resume-avatar w-20 h-20 rounded-full object-cover border-2 border-border box-border mx-auto"
+              className={`resume-avatar w-20 h-20 ${avatarShapeClasses} object-cover border-2 border-border box-border mx-auto`}
             />
           </div>
         )}
@@ -204,7 +207,7 @@ export default function ResumePreview({ resumeData }: ResumePreviewProps) {
             <img
               src={resumeData.avatar}
               alt="头像"
-              className="resume-avatar h-full aspect-square rounded-full object-cover border-2 border-border box-border"
+              className={`resume-avatar h-full aspect-square ${avatarShapeClasses} object-cover border-2 border-border box-border`}
             />
           </div>
         )}

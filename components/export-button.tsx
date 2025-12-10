@@ -100,6 +100,8 @@ export function ExportButton({
           imagePlaceholder:
             // 1x1 透明像素，若有图片加载失败用于占位，避免抛错
             "data:image/gif;base64,R0lGODlhAQABAIABAP///wAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==",
+          // 关闭字体内嵌，避免 html-to-image 在解析字体时对 undefined 调用 trim 抛错
+          skipFonts: true,
         };
 
         switch (format) {
@@ -170,6 +172,8 @@ export function ExportButton({
         cacheBust: true,
         imagePlaceholder:
           "data:image/gif;base64,R0lGODlhAQABAIABAP///wAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==",
+        // 同样关闭 SVG 导出时的字体内嵌，绕过 html-to-image 的字体解析 bug
+        skipFonts: true,
       } as HtmlToImageOptions);
 
       // 下载 SVG

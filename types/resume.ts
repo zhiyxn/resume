@@ -44,6 +44,8 @@ export interface PersonalInfoSection {
   personalInfo: PersonalInfoItem[]
   /** 是否显示个人信息标签 */
   showPersonalInfoLabels?: boolean
+  /** 头像显示风格：circle 圆形，square 方形 */
+  avatarShape?: 'circle' | 'square'
   /** 个人信息布局配置 */
   layout: PersonalInfoLayout
 }

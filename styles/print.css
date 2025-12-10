@@ -65,11 +65,14 @@
     font-family: "Microsoft YaHei", "SimSun", "Arial", sans-serif !important;
   }
 
-  /* 确保页面不会被截断 */
+  /* 分页策略：
+     当某个模块（例如“工作经历”）内容很多时，如果当前页剩余空间不足以容纳整个模块，
+     浏览器会把整个模块整体移动到下一页，导致上一页底部留下大面积空白。
+     这里改为允许模块内部正常分页，把“标题不要单独留在页底”的职责交给下面的 .module-title。 */
   .resume-module {
-    page-break-inside: avoid;
     margin-bottom: 12pt !important;
-    break-inside: avoid;
+    page-break-inside: auto;
+    break-inside: auto;
   }
 
   /* 标题样式优化 */
@@ -130,6 +133,10 @@
     border-radius: 50% !important;
     border: 1pt solid #ccc !important;
     object-fit: cover !important;
+  }
+
+  .resume-avatar.avatar-square {
+    border-radius: 0 !important;
   }
 
   /* 图标在打印时的处理：使图标高度与文本高度一致 */

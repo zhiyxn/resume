@@ -53,6 +53,7 @@ export default function PersonalInfoEditor({
   const avatarUrl = avatar || "";
   const showLabels = personalInfoSection?.showPersonalInfoLabels !== false;
   const layout: PersonalInfoLayout = personalInfoSection?.layout ?? { mode: 'grid', itemsPerRow: 2 };
+  const avatarShape = personalInfoSection?.avatarShape === "square" ? "square" : "circle";
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 提取personalInfo到局部变量以简化代码，如果personalInfoSection不存在则使用空数组
@@ -109,6 +110,18 @@ export default function PersonalInfoEditor({
     onUpdate({
       ...personalInfoSection,
       layout: newLayout
+    });
+  };
+
+  /**
+   * 切换头像显示风格（圆形 / 方形）
+   */
+  const toggleAvatarShape = () => {
+    if (!personalInfoSection) return;
+    const newShape = avatarShape === "circle" ? "square" : "circle";
+    onUpdate({
+      ...personalInfoSection,
+      avatarShape: newShape,
     });
   };
 
@@ -240,6 +253,18 @@ export default function PersonalInfoEditor({
           <Button
             size="sm"
             variant="outline"
+            onClick={toggleAvatarShape}
+            className="gap-2 bg-transparent"
+          >
+            <Icon
+              icon={avatarShape === "circle" ? "mdi:checkbox-blank-circle-outline" : "mdi:checkbox-blank-outline"}
+              className="w-4 h-4"
+            />
+            {avatarShape === "circle" ? "圆形头像" : "方形头像"}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
             onClick={toggleLayoutMode}
             className="gap-2 bg-transparent"
           >
@@ -299,7 +324,7 @@ export default function PersonalInfoEditor({
           <Label className="form-label">头像</Label>
           <div className="flex items-center gap-4">
             <div
-              className="w-16 h-16 rounded-full border-2 border-dashed border-border flex items-center justify-center overflow-hidden hover:cursor-pointer hover:border-primary"
+              className={`w-16 h-16 border-2 border-dashed border-border flex items-center justify-center overflow-hidden hover:cursor-pointer hover:border-primary ${avatarShape === "square" ? "rounded-none" : "rounded-full"}`}
               onClick={() => fileInputRef.current?.click()}
             >
               {avatarUrl ? (
